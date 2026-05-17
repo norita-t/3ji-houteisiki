@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORI_TOOLS — Math</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f5f5f3;--fg:#0a0a0a;--sub:#8a8a8a;--line:#c8c8c8;
+  --sep:rgba(0,0,0,.07);--hdr-h:52px;
+}
+[data-dark="1"]{
+  --bg:#0a0a0a;--fg:#f0efed;--sub:#555550;--line:#2e2e2c;--sep:rgba(255,255,255,.07);
+}
+html,body{height:100%;background:var(--bg);color:var(--fg);
+  font-family:'DM Mono',monospace;-webkit-font-smoothing:antialiased;
+  transition:background .3s,color .3s;overflow:hidden;}
+
+/* ── TOP BAR ── */
+.hr-top{position:fixed;top:0;left:0;right:0;height:2px;background:var(--fg);z-index:200;transition:background .3s;}
+.topbar{position:fixed;top:2px;left:0;right:0;height:var(--hdr-h);
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+  z-index:150;background:var(--bg);border-bottom:1px solid var(--sep);transition:background .3s;}
+.wordmark{font-size:.64rem;font-weight:400;letter-spacing:.22em;text-transform:uppercase;opacity:.9;}
+.topbar-right{display:flex;align-items:center;gap:.8rem;}
+.streak-badge{font-size:.70rem;letter-spacing:.12em;color:var(--sub);}
+.streak-badge span{color:var(--fg);font-weight:500;}
+.dark-toggle{background:none;border:none;cursor:pointer;opacity:.32;transition:opacity .2s;padding:.2rem;}
+.dark-toggle:hover{opacity:.7;}
+.dark-toggle svg{display:block;width:14px;height:14px;fill:var(--fg);transition:fill .3s;}
+
+/* ── LAYOUT ── */
+.app{position:fixed;top:calc(var(--hdr-h)+2px);left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+/* ── SCREENS ── */
+.screen{display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;padding:2rem;}
+.screen.active{display:flex;}
+#startScreen{padding-bottom:25vh;}/* 視覚的重心を中央へ */
+
+/* ── START SCREEN ── */
+.start-logo{font-size:clamp(2.5rem,8vw,5rem);font-weight:300;letter-spacing:-.03em;line-height:1;
+  margin-bottom:.5rem;}
+.start-sub{font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--sub);margin-bottom:3rem;}
+.start-desc{max-width:380px;text-align:center;font-size:.80rem;letter-spacing:.06em;
+  line-height:1.9;color:var(--sub);margin-bottom:2.5rem;}
+.start-desc strong{color:var(--fg);font-weight:400;}
+.start-btn{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;
+  font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--fg);border-bottom:2px solid var(--fg);padding-bottom:.2rem;transition:opacity .2s;}
+.start-btn:hover{opacity:.55;}
+
+/* ── PROBLEM SCREEN ── */
+.prob-wrap{width:min(860px,94vw);display:flex;flex-direction:column;gap:0;}
+
+/* counter */
+.prob-counter{font-size:.70rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);
+  margin-bottom:1.6rem;display:flex;justify-content:space-between;align-items:center;}
+.prob-num{font-size:.70rem;letter-spacing:.12em;color:var(--sub);}
+
+/* progress bar */
+.prog-track{height:1px;background:var(--sep);margin-bottom:2.2rem;position:relative;}
+.prog-fill{position:absolute;top:0;left:0;height:100%;background:var(--fg);transition:width .4s ease;}
+
+/* equation display */
+.eq-section{border-top:1px solid var(--sep);padding-top:2rem;margin-bottom:2rem;}
+.eq-label{font-size:.9rem;letter-spacing:.2em;text-transform:uppercase;color:var(--sub);margin-bottom:1.2rem;}
+.equation{font-size:clamp(1.4rem,5vw,2.2rem);font-weight:300;letter-spacing:-.01em;line-height:1.2;
+  color:var(--fg);font-style:italic;}
+.equation sub{font-style:normal;font-size:.6em;vertical-align:sub;}
+
+/* answer section */
+.ans-section{border-top:1px solid var(--sep);padding-top:1.8rem;margin-bottom:2rem;
+  min-height:140px;transition:opacity .25s;}
+.ans-section.hidden{opacity:0;pointer-events:none;}
+.ans-label{font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--sub);margin-bottom:1.2rem;}
+
+/* factored form */
+.factored{font-size:clamp(1.1rem,3.5vw,1.6rem);font-weight:300;letter-spacing:-.01em;
+  color:var(--fg);margin-bottom:1rem;font-style:italic;}
+.factored sub{font-style:normal;font-size:.62em;vertical-align:sub;}
+
+/* roots */
+.roots-row{display:flex;gap:2rem;flex-wrap:wrap;align-items:baseline;margin-top:.8rem;}
+.root-item{display:flex;flex-direction:column;gap:.2rem;}
+.root-label{font-size:.48rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);}
+.root-val{font-size:1.1rem;font-weight:300;font-style:italic;color:var(--fg);}
+
+/* steps */
+.steps{margin-top:1.4rem;border-top:1px solid var(--sep);padding-top:1.2rem;}
+.steps-title{font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);margin-bottom:.9rem;}
+.step{display:flex;gap:.8rem;margin-bottom:.8rem;align-items:flex-start;}
+.step-n{font-size:.48rem;letter-spacing:.12em;color:var(--sub);flex-shrink:0;padding-top:.12rem;min-width:1.2rem;}
+.step-body{font-size:.65rem;letter-spacing:.04em;color:var(--fg);line-height:1.7;}
+.step-body .mono{font-style:italic;color:var(--fg);}
+.step-body .dim{color:var(--sub);}
+.step-detail{font-size:.58rem;color:var(--sub);margin-top:.15rem;line-height:1.6;}
+
+/* controls */
+.ctrl-row{display:flex;gap:2rem;align-items:center;padding-top:.5rem;}
+.ctrl-btn{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;
+  font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--sub);padding:.3rem 0;border-bottom:1px solid transparent;transition:color .18s,border-color .18s;}
+.ctrl-btn:hover{color:var(--fg);border-bottom-color:var(--fg);}
+.ctrl-btn.primary{color:var(--fg);border-bottom-color:var(--fg);}
+.ctrl-btn.primary:hover{color:var(--sub);border-bottom-color:var(--sub);}
+
+/* ── RESULT SCREEN ── */
+.result-big{font-size:clamp(3rem,10vw,6rem);font-weight:300;letter-spacing:-.03em;margin-bottom:.5rem;}
+.result-sub{font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:var(--sub);margin-bottom:2.5rem;}
+.result-stats{display:flex;gap:3rem;margin-bottom:3rem;}
+.stat{display:flex;flex-direction:column;gap:.3rem;align-items:center;}
+.stat-val{font-size:2rem;font-weight:300;color:var(--fg);}
+.stat-lbl{font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);}
+.result-btns{display:flex;gap:2rem;}
+
+/* misc */
+@media(max-width:480px){
+  .roots-row{gap:1.2rem;}
+  .ctrl-row{gap:1.2rem;}
+  .result-stats{gap:1.8rem;}
+}
+</style>
+</head>
+<body>
+<div class="hr-top"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="wordmark">NORI_TOOLS — Math</span>
+  <div class="topbar-right">
+    <span class="streak-badge" id="streakBadge" style="display:none">連続正解 <span id="streakNum">0</span></span>
+    <button class="dark-toggle" id="darkBtn" aria-label="ダークモード">
+      <svg viewBox="0 0 24 24"><path id="darkPath" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="startScreen">
+    <div class="start-logo">f(x) = 0</div>
+    <div class="start-sub">三次方程式 練習</div>
+    <div class="start-desc">
+      ランダムな三次方程式を生成します。<br>
+      <strong>ax³ + bx² + cx + d = 0</strong><br><br>
+      問題を見て自分で解いてから「解を表示」で答え合わせ。<br>
+      因数分解の手順も確認できます。
+    </div>
+    <button class="start-btn" id="startBtn">練習を始める</button>
+  </div>
+
+  <!-- PROBLEM SCREEN -->
+  <div class="screen" id="probScreen">
+    <div class="prob-wrap">
+      <div class="prob-counter">
+        <span class="prob-num" id="probNum">問題 1</span>
+        <span id="scoreDisp">正解 0 / 0</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+
+      <div class="eq-section">
+        <div class="eq-label">Solve for x</div>
+        <div class="equation" id="eqDisplay"></div>
+      </div>
+
+      <div class="ans-section hidden" id="ansSection">
+        <div class="ans-label">解答</div>
+        <div class="factored" id="factoredDisplay"></div>
+        <div class="roots-row" id="rootsRow"></div>
+        <div class="steps" id="stepsDisplay"></div>
+      </div>
+
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="skipBtn">スキップ</button>
+        <button class="ctrl-btn primary" id="showBtn">解を表示</button>
+        <button class="ctrl-btn" id="nextBtn" style="display:none">次の問題 →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── DARK MODE ── */
+const html=document.documentElement;
+const MOON='M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z';
+const SUN='M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M18.66 5.34l1.41-1.41M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z';
+let dark=false;
+document.getElementById('darkBtn').addEventListener('click',()=>{
+  dark=!dark; html.dataset.dark=dark?'1':'0';
+  document.getElementById('darkPath').setAttribute('d',dark?SUN:MOON);
+});
+
+/* ══════════════════════════════════════
+   MATH ENGINE
+══════════════════════════════════════ */
+
+/* randInt inclusive */
+function ri(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+/* Generate cubic with at least one integer root in [-3,3] */
+function generateProblem(){
+  let attempts=0;
+  while(attempts++<2000){
+    const r1=ri(-3,3);                 // guaranteed integer root
+    const r2=ri(-4,4);                 // second root (integer or rational)
+    const r3=ri(-4,4);                 // third root
+    const a=ri(1,3)*( Math.random()<.5?1:-1 );
+
+    // a(x-r1)(x-r2)(x-r3) = a[x³ - (r1+r2+r3)x² + (r1r2+r1r3+r2r3)x - r1*r2*r3]
+    const S1=r1+r2+r3;
+    const S2=r1*r2+r1*r3+r2*r3;
+    const S3=r1*r2*r3;
+
+    const b= -a*S1;
+    const c=  a*S2;
+    const d= -a*S3;
+
+    // keep coefficients reasonable
+    if(Math.abs(b)>18||Math.abs(c)>24||Math.abs(d)>30) continue;
+
+    // avoid trivial (all coefficients 0 except a)
+    if(b===0&&c===0&&d===0) continue;
+
+    // collect unique roots
+    const roots=[...new Set([r1,r2,r3])].sort((x,y)=>x-y);
+    const allInts=roots.every(r=>Number.isInteger(r));
+
+    return {a,b,c,d,roots,r1,r2,r3,a_lead:a};
+  }
+  // fallback
+  return generateProblem();
+}
+
+/* Format coefficient display for ax^n */
+function coefStr(c,isFirst){
+  if(c===0) return '';
+  if(isFirst){
+    if(c===1)  return '';
+    if(c===-1) return '−';
+    return c<0 ? '−'+Math.abs(c) : String(c);
+  }
+  if(c===1)  return ' + ';
+  if(c===-1) return ' − ';
+  return c>0 ? ' + '+c : ' − '+Math.abs(c);
+}
+
+/* Build equation string (HTML) */
+function buildEqHTML(a,b,c,d){
+  // term: ax³
+  let s='';
+  const aAbs=Math.abs(a), aSign=a<0;
+  s += (aSign?'−':'')+( aAbs===1?'':aAbs )+'x³';
+  // bx²
+  if(b!==0){
+    const bAbs=Math.abs(b);
+    s += (b>0?' + ':' − ')+(bAbs===1?'':bAbs)+'x²';
+  }
+  // cx
+  if(c!==0){
+    const cAbs=Math.abs(c);
+    s += (c>0?' + ':' − ')+(cAbs===1?'':cAbs)+'x';
+  }
+  // d
+  if(d!==0) s+= (d>0?' + ':' − ')+Math.abs(d);
+  s+=' = 0';
+  return s;
+}
+
+/* Build factored form HTML */
+function buildFactoredHTML(a,roots_raw, r1,r2,r3){
+  // We reconstruct the factored form from the three roots (may have repeats)
+  const rootList=[r1,r2,r3];
+  const aStr=a===1?'':(a===-1?'−':( a<0?'−'+Math.abs(a):String(a) ));
+
+  function factorStr(r){
+    // (x - r) with sign
+    if(r===0) return 'x';
+    if(r>0)   return `(x − ${r})`;
+    return `(x + ${Math.abs(r)})`;
+  }
+
+  // Consolidate repeated roots as (...)²
+  const counts={};
+  rootList.forEach(r=>{ counts[r]=(counts[r]||0)+1; });
+  let parts=[];
+  Object.entries(counts).forEach(([r,cnt])=>{
+    const fs=factorStr(Number(r));
+    parts.push(cnt===1?fs:fs+'<sup style="font-size:.6em;font-style:normal">'+cnt+'</sup>');
+  });
+
+  return `${aStr}${parts.join('')} = 0`;
+}
+
+/* ══════════════════════════════════════
+   STEP GENERATOR
+══════════════════════════════════════ */
+function buildSteps(a,b,c,d,r1,r2,r3){
+  const steps=[];
+  // Step 1: find first root by trial
+  steps.push({
+    n:'01',
+    body:`x = <em class="mono">${r1}</em> を代入すると f(${r1}) = 0 → <em class="mono">x − (${r1})</em> が因数`,
+    detail:`f(x) = ${buildEqHTML(a,b,c,d).replace(' = 0','')}  に x=${r1} を代入 → 0 になることを確認`
+  });
+
+  // Step 2: polynomial division to get quadratic
+  // a(x-r1)(quadratic) → compute quotient
+  // (ax³+bx²+cx+d) ÷ (x-r1) using synthetic division
+  const q=syntheticDivide([a,b,c,d],r1); // returns [qa, qb, qc]
+  const [qa,qb,qc]=q;
+  const quadStr=buildQuadStr(qa,qb,qc);
+  steps.push({
+    n:'02',
+    body:`組立除法で <em class="mono">(x − (${r1}))</em> で割る`,
+    detail:`商: <em class="mono">${quadStr}</em>`
+  });
+
+  // Step 3: factor the quadratic
+  // qa*x² + qb*x + qc = qa(x-r2)(x-r3)
+  const disc=qb*qb-4*qa*qc;
+  if(disc<0){
+    steps.push({n:'03',body:`判別式 D = ${qb}² − 4·${qa}·${qc} = ${disc} &lt; 0 → 実数解なし（${quadStr} は実数範囲では因数分解不可）`,detail:''});
+  } else if(disc===0){
+    const rr=(-qb)/(2*qa);
+    steps.push({n:'03',body:`<em class="mono">${quadStr}</em> → 重解 x = ${frac(-qb,2*qa)}`,detail:`D = 0 なので <em class="mono">(x − ${rr})²</em>`});
+  } else {
+    steps.push({
+      n:'03',
+      body:`<em class="mono">${quadStr}</em> を因数分解`,
+      detail:`= ${buildFactorStr(qa,r2,r3)}`
+    });
+  }
+
+  // Step 4: write full factored form
+  steps.push({
+    n:'04',
+    body:`よって <em class="mono">${buildFactoredHTML(a,[],r1,r2,r3)}</em>`,
+    detail:`x = ${[...new Set([r1,r2,r3])].sort((x,y)=>x-y).join(', ')}`
+  });
+
+  return steps;
+}
+
+function syntheticDivide(coeffs, root){
+  // coeffs=[a,b,c,d], divide by (x-root)
+  let result=[coeffs[0]];
+  for(let i=1;i<coeffs.length-1;i++){
+    result.push(coeffs[i]+result[i-1]*root);
+  }
+  // last element should be 0 (remainder); return [qa,qb,qc]
+  return result;
+}
+
+function buildQuadStr(a,b,c){
+  let s='';
+  s+=a===1?'':(a===-1?'−':a)+'x²';
+  if(b!==0){
+    const bAbs=Math.abs(b);
+    s+=(b>0?' + ':' − ')+(bAbs===1?'':bAbs)+'x';
+  }
+  if(c!==0) s+=(c>0?' + ':' − ')+Math.abs(c);
+  return s||'0';
+}
+
+function buildFactorStr(a,r2,r3){
+  const aStr=a===1?'':(a===-1?'−':( a<0?'−'+Math.abs(a):String(a) ));
+  function fs(r){ if(r===0)return 'x'; if(r>0)return `(x − ${r})`; return `(x + ${Math.abs(r)})`; }
+  if(r2===r3) return `${aStr}${fs(r2)}<sup style="font-size:.6em;font-style:normal">2</sup>`;
+  return `${aStr}${fs(r2)}${fs(r3)}`;
+}
+
+function frac(p,q){
+  const g=gcd(Math.abs(p),Math.abs(q));
+  const np=p/g,nq=q/g;
+  if(nq===1) return String(np);
+  const sign=(np<0)!=(nq<0)?'−':'';
+  return `${sign}${Math.abs(np)}/${Math.abs(nq)}`;
+}
+function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+
+/* ══════════════════════════════════════
+   APP STATE
+══════════════════════════════════════ */
+let probCount=0, correctCount=0, streak=0;
+let currentProb=null;
+let ansShown=false;
+const SESSION_LEN=10;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function nextProblem(){
+  probCount++;
+  ansShown=false;
+  currentProb=generateProblem();
+  const {a,b,c,d,roots,r1,r2,r3}=currentProb;
+
+  // update header
+  document.getElementById('probNum').textContent=`問題 ${probCount}`;
+  document.getElementById('scoreDisp').textContent=`正解 ${correctCount} / ${probCount-1}`;
+  document.getElementById('progFill').style.width=((probCount-1)/SESSION_LEN*100)+'%';
+  document.getElementById('streakBadge').style.display=streak>1?'':'none';
+  document.getElementById('streakNum').textContent=streak;
+
+  // equation
+  document.getElementById('eqDisplay').innerHTML=buildEqHTML(a,b,c,d);
+
+  // hide answer
+  document.getElementById('ansSection').classList.add('hidden');
+  document.getElementById('showBtn').style.display='';
+  document.getElementById('nextBtn').style.display='none';
+  document.getElementById('skipBtn').style.display='';
+
+  showScreen('probScreen');
+}
+
+function showAnswer(){
+  if(ansShown) return;
+  ansShown=true;
+  const {a,b,c,d,roots,r1,r2,r3}=currentProb;
+
+  // factored
+  document.getElementById('factoredDisplay').innerHTML=buildFactoredHTML(a,roots,r1,r2,r3);
+
+  // roots
+  const rr=document.getElementById('rootsRow');
+  rr.innerHTML='';
+  const uniq=[...new Set([r1,r2,r3])].sort((x,y)=>x-y);
+  uniq.forEach((r,i)=>{
+    const item=document.createElement('div'); item.className='root-item';
+    item.innerHTML=`<span class="root-label">x<sub>${i+1}</sub></span><span class="root-val">${r}</span>`;
+    rr.appendChild(item);
+  });
+
+  // steps
+  const steps=buildSteps(a,b,c,d,r1,r2,r3);
+  const stepsEl=document.getElementById('stepsDisplay');
+  stepsEl.innerHTML=`<div class="steps-title">解法の手順</div>`+
+    steps.map(s=>`<div class="step">
+      <span class="step-n">${s.n}</span>
+      <div><div class="step-body">${s.body}</div>${s.detail?`<div class="step-detail">${s.detail}</div>`:''}</div>
+    </div>`).join('');
+
+  document.getElementById('ansSection').classList.remove('hidden');
+  document.getElementById('showBtn').style.display='none';
+  document.getElementById('nextBtn').style.display='';
+  document.getElementById('skipBtn').style.display='none';
+
+  correctCount++;
+  streak++;
+  document.getElementById('streakBadge').style.display=streak>1?'':'none';
+  document.getElementById('streakNum').textContent=streak;
+}
+
+/* ── EVENTS ── */
+document.getElementById('startBtn').addEventListener('click',()=>{
+  probCount=0; correctCount=0; streak=0;
+  document.getElementById('streakBadge').style.display='none';
+  nextProblem();
+});
+
+document.getElementById('showBtn').addEventListener('click',showAnswer);
+
+document.getElementById('nextBtn').addEventListener('click',()=>nextProblem());
+
+document.getElementById('skipBtn').addEventListener('click',()=>{
+  streak=0;
+  document.getElementById('streakBadge').style.display='none';
+  nextProblem();
+});
+
+/* keyboard shortcuts */
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('probScreen').classList.contains('active')){
+    if(e.key==='Enter'||e.key===' '){
+      e.preventDefault();
+      if(!ansShown) showAnswer();
+      else nextProblem();
+    }
+    if(e.key==='ArrowRight'&&ansShown) nextProblem();
+  }
+});
+</script>
+</body>
+</html>
